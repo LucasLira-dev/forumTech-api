@@ -1,0 +1,19 @@
+
+services:
+  postgres:
+    image: postgres:latest
+    container_name: nestjs_auth_db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: sua_senha
+      POSTGRES_DB: nestjs_auth_db
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data  # ✅ Dados persistentes
+      # OU use um caminho local:
+      # - ./postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped  # ✅ Reinicia automaticamente
+
+volumes:
+  postgres_data:  # ✅ Define o volume nomeado

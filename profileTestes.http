@@ -1,0 +1,366 @@
+### ================ CONFIGURAÇÃO ================
+@baseUrl = http://localhost:3000
+@contentType = application/json
+
+### ================ AUTENTICAÇÃO ================
+
+### 🔐 Login usuário comum 1
+POST {{baseUrl}}/auth/signIn
+Content-Type: {{contentType}}
+
+{
+   "email": "lucas@example.com",
+    "password": "teste123"
+}
+
+@userToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Imx1Y2FzQGV4YW1wbGUuY29tIiwic3ViIjoiZGE1NjFjNTItYzhiMS00NWNmLTllN2QtNDA1ZDMyOWFhOTI3Iiwicm9sZSI6InVzZXIiLCJpYXQiOjE3NTkwODQ4NzksImV4cCI6MTc1OTA4ODQ3OX0.SOnSSf4RrVZZ6BdWIZrbiU2qEvPND9GIvcsegELF6C4
+
+### 🔐 Login usuário comum 2
+POST {{baseUrl}}/auth/signIn
+Content-Type: {{contentType}}
+
+{
+  "email": "user2@example.com", 
+  "password": "user123"
+}
+
+@user2Token = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Imx1Y2FzQGV4YW1wbGUuY29tIiwic3ViIjoiZGE1NjFjNTItYzhiMS00NWNmLTllN2QtNDA1ZDMyOWFhOTI3Iiwicm9sZSI6InVzZXIiLCJpYXQiOjE3NTkwODAyMDMsImV4cCI6MTc1OTA4MzgwM30.7nw5Tz6vdxt9OQk-IFBOb-bEjMYXoYrZ7MtwwX5zur4
+
+### 🔐 Login admin
+POST {{baseUrl}}/auth/signIn
+Content-Type: {{contentType}}
+
+{
+  "email": "admin@example.com",
+  "password": "admin123"
+}
+
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFkbWluQGV4YW1wbGUuY29tIiwic3ViIjoiZGUyYzkwZDYtZDJiNC00NzMxLTlhZDktNGViYTRmMDBiMTQ5Iiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzU5MDgxOTkxLCJleHAiOjE3NTkwODU1OTF9.NoKhyAjDijLuRnzY9X1tSldhJ2TOKmntS5-LYmC4akU
+### ================ 1. CRIAR PERFIL ================
+
+### ✅ Criar perfil completo
+POST {{baseUrl}}/profile
+Authorization: Bearer {{userToken}}
+Content-Type: {{contentType}}
+
+{
+  "userName": "lucas",
+  "bio": "Desenvolvedor apaixonado por tecnologia e inovação",
+  "avatarUrl": "https://example.com/avatar/joao.jpg",
+  "capaUrl": "https://example.com/capa/joao.jpg",
+  "isPublic": true
+}
+
+### ✅ Criar perfil mínimo (só userName)
+POST {{baseUrl}}/profile
+Authorization: Bearer {{user2Token}}
+Content-Type: {{contentType}}
+
+{
+  "userName": "maria_dev"
+}
+
+### ❌ Tentar criar perfil duplicado (deve falhar)
+POST {{baseUrl}}/profile
+Authorization: Bearer {{userToken}}
+Content-Type: {{contentType}}
+
+{
+  "userName": "joao_silva_novo",
+  "bio": "Segundo perfil"
+}
+
+### ❌ Tentar criar com userName já existente (deve falhar)
+POST {{baseUrl}}/profile
+Authorization: Bearer {{user2Token}}
+Content-Type: {{contentType}}
+
+{
+  "userName": "joao_silva"
+}
+
+### ❌ Criar perfil com dados inválidos (deve falhar)
+POST {{baseUrl}}/profile
+Authorization: Bearer {{userToken}}
+Content-Type: {{contentType}}
+
+{
+  "userName": "ab",
+  "bio": "Bio muito longa que vai passar do limite de 200 caracteres. Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.",
+  "avatarUrl": "url-invalida",
+  "isPublic": "nao-booleano"
+}
+
+### ================ 2. VER PRÓPRIO PERFIL ================
+
+### ✅ Ver meu perfil
+GET {{baseUrl}}/profile/my-profile
+Authorization: Bearer {{userToken}}
+
+### ✅ Ver meu perfil (user2)
+GET {{baseUrl}}/profile/my-profile
+Authorization: Bearer {{user2Token}}
+
+### ❌ Ver perfil sem estar logado (deve falhar)
+GET {{baseUrl}}/profile/my-profile
+
+### ================ 3. VER PERFIL DE OUTROS ================
+
+@userId1 = 75a8ac27-f307-492c-a8d0-8dabcd39b6ce
+@userId2 = 
+
+### ✅ Ver perfil público de outro usuário
+GET {{baseUrl}}/profile/{{userId1}}
+Authorization: Bearer {{user2Token}}
+
+### ❌ Tentar ver perfil privado (deve falhar se isPublic = false)
+GET {{baseUrl}}/profile/{{userId2}}
+Authorization: Bearer {{userToken}}
+
+### ❌ Ver perfil de usuário inexistente (deve falhar)
+GET {{baseUrl}}/profile/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{userToken}}
+
+### ================ 4. LISTAR PERFIS PÚBLICOS ================
+
+### ✅ Listar todos os perfis públicos
+GET {{baseUrl}}/profile/public
+Authorization: Bearer {{userToken}}
+
+### ✅ Listar perfis públicos (admin)
+GET {{baseUrl}}/profile/public
+Authorization: Bearer {{adminToken}}
+
+### ================ 5. PESQUISAR PERFIS ================
+
+### ✅ Buscar todos os perfis públicos (sem termo)
+GET {{baseUrl}}/profile/search
+Authorization: Bearer {{userToken}}
+
+### ✅ Buscar por userName específico
+GET {{baseUrl}}/profile/search?query=luc
+Authorization: Bearer {{userToken}}
+
+### ✅ Buscar por userName parcial
+GET {{baseUrl}}/profile/search?query=cas
+Authorization: Bearer {{userToken}}
+
+### ✅ Buscar por userName inexistente (retorna array vazio)
+GET {{baseUrl}}/profile/search?query=naoexiste123
+Authorization: Bearer {{userToken}}
+
+### ✅ Buscar com espaços (deve funcionar)
+GET {{baseUrl}}/profile/search?query=    lucas 
+Authorization: Bearer {{userToken}}
+
+### ================ 6. PESQUISA ADMIN ================
+
+### 👑 Admin busca todos os perfis (incluindo privados)
+GET {{baseUrl}}/profile/admin/search
+Authorization: Bearer {{adminToken}}
+
+### 👑 Admin busca perfil específico (incluindo privados)
+GET {{baseUrl}}/profile/admin/search?query=maria
+Authorization: Bearer {{adminToken}}
+
+### ❌ Usuário comum tenta pesquisa admin (deve falhar)
+GET {{baseUrl}}/profile/admin/search
+Authorization: Bearer {{userToken}}
+
+### ================ 7. ALTERAR PRIVACIDADE ================
+
+### 🔒 Tornar perfil PRIVADO
+PATCH {{baseUrl}}/profile/visibility
+Authorization: Bearer {{userToken}}
+Content-Type: {{contentType}}
+
+{
+  "isPublic": false
+}
+
+### 🔍 Verificar se perfil desapareceu da busca pública
+GET {{baseUrl}}/profile/search?query=joao
+Authorization: Bearer {{user2Token}}
+
+### 👑 Admin ainda consegue ver perfil privado
+GET {{baseUrl}}/profile/admin/search?query=joao
+Authorization: Bearer {{adminToken}}
+
+### 🌐 Tornar perfil PÚBLICO novamente
+PATCH {{baseUrl}}/profile/visibility
+Authorization: Bearer {{userToken}}
+Content-Type: {{contentType}}
+
+{
+  "isPublic": true
+}
+
+### 🔍 Verificar se perfil voltou na busca pública
+GET {{baseUrl}}/profile/search?query=joao
+Authorization: Bearer {{user2Token}}
+
+### ❌ Alterar privacidade com dados inválidos (deve falhar)
+PATCH {{baseUrl}}/profile/visibility
+Authorization: Bearer {{userToken}}
+Content-Type: {{contentType}}
+
+{
+  "isPublic": "maybe"
+}
+
+### ================ 8. ATUALIZAR PERFIL ================
+
+### ✅ Atualizar bio
+PATCH {{baseUrl}}/profile/update-profile
+Authorization: Bearer {{userToken}}
+Content-Type: {{contentType}}
+
+{
+  "bio": "Nova bio atualizada com informações mais recentes"
+}
+
+### ✅ Atualizar userName
+PATCH {{baseUrl}}/profile/update-profile
+Authorization: Bearer {{userToken}}
+Content-Type: {{contentType}}
+
+{
+  "userName": "joao_dev_2024"
+}
+
+### ✅ Atualizar múltiplos campos
+PATCH {{baseUrl}}/profile/update-profile
+Authorization: Bearer {{userToken}}
+Content-Type: {{contentType}}
+
+{
+  "bio": "Full Stack Developer | React | Node.js | TypeScript",
+  "avatarUrl": "https://example.com/new-avatar.jpg",
+  "capaUrl": "https://example.com/new-capa.jpg"
+}
+
+### ❌ Tentar atualizar com userName já existente (deve falhar)
+PATCH {{baseUrl}}/profile/update-profile
+Authorization: Bearer {{user2Token}}
+Content-Type: {{contentType}}
+
+{
+  "userName": "joao_dev_2024"
+}
+
+### ❌ Atualizar com dados inválidos (deve falhar)
+PATCH {{baseUrl}}/profile/update-profile
+Authorization: Bearer {{userToken}}
+Content-Type: {{contentType}}
+
+{
+  "userName": "x",
+  "bio": "Bio extremamente longa que vai passar do limite de 200 caracteres permitidos pela validação. Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur.",
+  "avatarUrl": "not-a-valid-url"
+}
+
+### ================ 9. CENÁRIOS COM USUÁRIOS BANIDOS ================
+
+### 👑 Admin bane um usuário
+@userIdToBan = COLE_USER_ID_AQUI
+PATCH {{baseUrl}}/user/admin/{{userIdToBan}}/ban
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "reason": "Comportamento inadequado no perfil"
+}
+
+### 🔍 Verificar se perfil de usuário banido não aparece na busca
+GET {{baseUrl}}/profile/search
+Authorization: Bearer {{userToken}}
+
+### 👑 Mas admin ainda vê perfil de usuário banido
+GET {{baseUrl}}/profile/admin/search
+Authorization: Bearer {{adminToken}}
+
+### ❌ Usuário banido tenta atualizar perfil (deve falhar)
+PATCH {{baseUrl}}/profile/update-profile
+Authorization: Bearer TOKEN_USUARIO_BANIDO
+Content-Type: {{contentType}}
+
+{
+  "bio": "Tentando atualizar mesmo banido"
+}
+
+### ================ 10. DELETAR PERFIL ================
+
+### ⚠️ Deletar perfil (ação irreversível)
+DELETE {{baseUrl}}/profile/delete-profile
+Authorization: Bearer {{user2Token}}
+
+### 🔍 Verificar se perfil sumiu da busca
+GET {{baseUrl}}/profile/search?query=maria
+Authorization: Bearer {{userToken}}
+
+### ❌ Tentar ver perfil deletado (deve falhar)
+GET {{baseUrl}}/profile/my-profile
+Authorization: Bearer {{user2Token}}
+
+### ❌ Tentar deletar perfil inexistente (deve falhar)
+DELETE {{baseUrl}}/profile/delete-profile
+Authorization: Bearer {{user2Token}}
+
+
+### 🔧 Tornar o perfil público (corrigir o valor)
+PATCH {{baseUrl}}/profile/update-visibility
+Authorization: Bearer {{userToken}}
+Content-Type: {{contentType}}
+
+{
+  "isPublic": true
+}
+
+### ================ 11. CENÁRIOS DE ERRO ================
+
+### ❌ Acessar rotas sem token
+GET {{baseUrl}}/profile/my-profile
+
+### ❌ Acessar rota admin sem ser admin
+GET {{baseUrl}}/profile/admin/search
+Authorization: Bearer {{userToken}}
+
+### ❌ Token inválido
+GET {{baseUrl}}/profile/my-profile
+Authorization: Bearer token-invalido
+
+### ❌ Tentar criar perfil para usuário inexistente
+POST {{baseUrl}}/profile
+Authorization: Bearer token-de-usuario-inexistente
+Content-Type: {{contentType}}
+
+{
+  "userName": "perfil_orfao"
+}
+
+### ================ 12. ESTATÍSTICAS (BONUS) ================
+
+### 📊 Ver todos os usuários (para pegar IDs)
+GET {{baseUrl}}/user/profile
+Authorization: Bearer {{adminToken}}
+
+### 📊 Estatísticas de perfis
+GET {{baseUrl}}/profile/public
+Authorization: Bearer {{adminToken}}
+
+### ================ RESUMO DE VALIDAÇÕES ================
+# ✅ Criar perfil: OK
+# ✅ Ver próprio perfil: OK
+# ✅ Ver perfil público de outros: OK
+# ❌ Ver perfil privado: FAIL
+# ✅ Listar perfis públicos: OK
+# ✅ Buscar perfis: OK
+# 👑 Admin vê todos: OK
+# ❌ User tenta admin: FAIL
+# ✅ Alterar privacidade: OK
+# ✅ Atualizar perfil: OK
+# ❌ userName duplicado: FAIL
+# ✅ Deletar perfil: OK
+# ❌ Usuário banido: HIDDEN
+# ❌ Dados inválidos: FAIL
+# ❌ Sem autenticação: FAIL

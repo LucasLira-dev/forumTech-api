@@ -1,0 +1,551 @@
+### Variáveis globais
+@baseUrl = http://localhost:3000
+@contentType = application/json
+
+### 1. 🚀 Registrar usuário
+POST {{baseUrl}}/user/register
+Content-Type: {{contentType}}
+
+{
+  "email": "lucas@example.com",
+  "password": "teste123",
+  "name": "Lucas"
+}
+
+### 2. 🔐 Login
+POST {{baseUrl}}/auth/signIn
+Content-Type: {{contentType}}
+
+{
+  "email": "lucas@example.com",
+  "password": "teste123"
+}
+
+### 3. 💾 Salvar tokens (copie do response do login acima)
+@accessToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFkbWluQGV4YW1wbGUuY29tIiwic3ViIjoiZGUyYzkwZDYtZDJiNC00NzMxLTlhZDktNGViYTRmMDBiMTQ5Iiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzU5MDc5MDkyLCJleHAiOjE3NTkwODI2OTJ9.zSLRV_tChhly4MQQFJJHS2HslObU-CBUTBmKTwE7ZcQ
+@refreshToken = af0a637752f5e323b29c52332b9b480d9d32ff6d3dfeadc9769e71073e06837b
+
+### 4. 👤 Buscar perfil (rota protegida)
+GET {{baseUrl}}/user/profile
+Authorization: Bearer {{accessToken}}
+
+### 5. 📋 Listar usuários (rota protegida)
+GET {{baseUrl}}/user/profiles
+Authorization: Bearer {{accessToken}}
+
+### 6. 🔄 Renovar token
+POST {{baseUrl}}/auth/refreshToken
+Content-Type: {{contentType}}
+
+{
+  "refreshToken": "{{refreshToken}}"
+}
+
+### 7. ❌ Testar email duplicado
+POST {{baseUrl}}/user/register
+Content-Type: {{contentType}}
+
+{
+  "email": "test@example.com",
+  "password": "654321",
+  "name": "Maria Silva"
+}
+
+### 8. ❌ Testar login inválido
+POST {{baseUrl}}/auth/signIn
+Content-Type: {{contentType}}
+
+{
+  "email": "test@example.com",
+  "password": "senhaerrada"
+}
+
+### 9. ❌ Testar dados inválidos no registro
+POST {{baseUrl}}/user/register
+Content-Type: {{contentType}}
+
+{
+  "email": "email_invalido",
+  "password": "123",
+  "name": ""
+}
+
+### 10. ❌ Testar token inválido
+GET {{baseUrl}}/user/profile
+Authorization: Bearer token_invalido_aqui
+
+
+
+
+### ================ TESTES DE TOPICS ================
+
+### 11. 📝 Criar topic
+POST {{baseUrl}}/topic
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "title": "Aprendendo NestJS",
+  "description": "Estudos sobre framework Node.js e TypeScript"
+}
+
+### 12. 📝 Criar segundo topic
+POST {{baseUrl}}/topic
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "title": "TypeScript Avançado",
+  "description": "Conceitos avançados de TypeScript e tipos"
+}
+
+### 13. 📝 Criar terceiro topic
+POST {{baseUrl}}/topic
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "title": "Docker e Containers",
+  "description": "Containerização de aplicações com Docker"
+}
+
+### 14. 📋 Listar todos os topics
+GET {{baseUrl}}/topic
+Authorization: Bearer {{accessToken}}
+
+### 15. 👤 Buscar topics do usuário logado
+GET {{baseUrl}}/topic/topicsByUser
+Authorization: Bearer {{accessToken}}
+
+### 16. 🔍 Buscar topic específico (substitua TOPIC_ID)
+@topicId = 1cf50433-bc78-42cd-a817-7d049e516a3a
+GET {{baseUrl}}/topic/{{topicId}}
+Authorization: Bearer {{accessToken}}
+
+### 17. ✏️ Atualizar topic
+PATCH {{baseUrl}}/topic/{{topicId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "title": "NestJS - Título Atualizado",
+  "description": "Descrição atualizada sobre NestJS e suas funcionalidades"
+}
+
+### 18. 🗑️ Deletar topic
+DELETE {{baseUrl}}/topic/{{topicId}}
+Authorization: Bearer {{accessToken}}
+
+### ================ TESTES DE ERRO - TOPICS ================
+
+### 19. ❌ Criar topic sem autenticação
+POST {{baseUrl}}/topic
+Content-Type: {{contentType}}
+
+{
+  "title": "Topic sem auth",
+  "description": "Este deve falhar"
+}
+
+### 20. ❌ Criar topic com dados inválidos
+POST {{baseUrl}}/topic
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "title": "",
+  "description": ""
+}
+
+### 21. ❌ Criar topic com título muito longo
+POST {{baseUrl}}/topic
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "title": "Este é um título muito longo que excede o limite de 100 caracteres estabelecido na validação do DTO, então deve retornar erro de validação",
+  "description": "Descrição válida"
+}
+
+### 22. ❌ Buscar topic inexistente
+GET {{baseUrl}}/topic/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{accessToken}}
+
+### 23. ❌ Atualizar topic inexistente
+PATCH {{baseUrl}}/topic/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "title": "Título para topic inexistente",
+  "description": "Descrição para topic inexistente"
+}
+
+### 24. ❌ Deletar topic inexistente
+DELETE {{baseUrl}}/topic/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{accessToken}}
+
+### 25. ❌ Buscar topic com token inválido
+GET {{baseUrl}}/topic
+Authorization: Bearer token_invalido_aqui
+
+
+
+
+
+
+### ================ TESTES DE COMMENTS ================
+
+### 26. 💬 Criar comentário no primeiro topic
+POST {{baseUrl}}/comments
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "content": "Este é meu primeiro comentário sobre NestJS!",
+  "topicId": "{{topicId}}"
+}
+
+### 27. 💬 Criar segundo comentário
+POST {{baseUrl}}/comments
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "content": "NestJS realmente é um framework incrível para APIs REST!",
+  "topicId": "{{topicId}}"
+}
+
+### 28. 💬 Criar terceiro comentário
+POST {{baseUrl}}/comments
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "content": "Concordo! A documentação é excelente também.",
+  "topicId": "{{topicId}}"
+}
+
+### 29. 💾 Salvar commentId (copie do response do comentário criado)
+@commentId = 8664664c-105f-400a-9015-015ac9541ea7
+
+### 30. 📋 Buscar comentários por tópico
+GET {{baseUrl}}/comments/by-topic/{{topicId}}
+Authorization: Bearer {{accessToken}}
+
+### 31. 👤 Buscar meus comentários
+GET {{baseUrl}}/comments/my-comments
+Authorization: Bearer {{accessToken}}
+
+### 32. 🔍 Buscar comentário específico
+GET {{baseUrl}}/comments/{{commentId}}
+Authorization: Bearer {{accessToken}}
+
+### 33. ✏️ Atualizar comentário
+PATCH {{baseUrl}}/comments/updateComment/{{commentId}}
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "content": "Comentário atualizado: NestJS + TypeScript é a combinação perfeita!"
+}
+
+### 34. 🗑️ Deletar comentário
+DELETE {{baseUrl}}/comments/deleteComment/{{commentId}}
+Authorization: Bearer {{accessToken}}
+
+### ================ TESTES DE ERRO - COMMENTS ================
+
+### 35. ❌ Criar comentário sem autenticação
+POST {{baseUrl}}/comments
+Content-Type: {{contentType}}
+
+{
+  "content": "Comentário sem auth",
+  "topicId": "{{topicId}}"
+}
+
+### 36. ❌ Criar comentário com dados inválidos
+POST {{baseUrl}}/comments
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "content": "",
+  "topicId": "topicId_invalido"
+}
+
+### 37. ❌ Criar comentário em tópico inexistente
+POST {{baseUrl}}/comments
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "content": "Comentário em tópico que não existe",
+  "topicId": "00000000-0000-0000-0000-000000000000"
+}
+
+### 38. ❌ Buscar comentários de tópico inexistente
+GET {{baseUrl}}/comments/by-topic/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{accessToken}}
+
+### 39. ❌ Buscar comentário inexistente
+GET {{baseUrl}}/comments/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{accessToken}}
+
+### 40. ❌ Atualizar comentário inexistente
+PATCH {{baseUrl}}/comments/updateComment/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "content": "Tentando atualizar comentário inexistente"
+}
+
+### 41. ❌ Deletar comentário inexistente
+DELETE {{baseUrl}}/comments/deleteComment/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{accessToken}}
+
+### 42. ❌ Atualizar comentário sem autenticação
+PATCH {{baseUrl}}/comments/updateComment/{{commentId}}
+Content-Type: {{contentType}}
+
+{
+  "content": "Tentando atualizar sem token"
+}
+
+### 43. ❌ Deletar comentário sem autenticação
+DELETE {{baseUrl}}/comments/deleteComment/{{commentId}}
+
+### 44. ❌ Criar comentário sem topicId
+POST {{baseUrl}}/comments
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "content": "Comentário sem topicId"
+}
+
+### 45. ❌ Criar comentário sem content
+POST {{baseUrl}}/comments
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "topicId": "{{topicId}}"
+}
+
+
+
+
+
+
+
+
+### ================ TESTES DE PROFILE ================
+
+### 46. 👤 Criar perfil
+POST {{baseUrl}}/profile
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "userName": "joaosilva123",
+  "bio": "Desenvolvedor apaixonado por tecnologia e inovação",
+  "avatarUrl": "https://example.com/avatar.jpg",
+  "capaUrl": "https://example.com/capa.jpg"
+}
+
+### 47. 👤 Criar segundo perfil (para testes)
+# Primeiro registre outro usuário
+POST {{baseUrl}}/user/register
+Content-Type: {{contentType}}
+
+{
+  "email": "maria@example.com",
+  "password": "123456",
+  "name": "maria Silva"
+}
+
+# Faça login
+POST {{baseUrl}}/auth/signIn
+Content-Type: {{contentType}}
+
+{
+  "email": "maria@example.com",
+  "password": "123456"
+}
+
+# Salve o token da Maria
+@mariaToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im1hcmlhQGV4YW1wbGUuY29tIiwic3ViIjoiNWQ0YzliOTYtMGEyOS00NmQ4LWE5ZGUtY2Y5ZTdmYzlhNzk2IiwiaWF0IjoxNzU4NzI1MzU1LCJleHAiOjE3NTg3Mjg5NTV9.aeL-oszCRRcf3DivJQFLjBhfpem-8p7zyuJLflY1l9o
+
+
+# Crie perfil público da Maria
+POST {{baseUrl}}/profile
+Authorization: Bearer {{mariaToken}}
+Content-Type: {{contentType}}
+
+{
+  "userName": "mariasantos",
+  "bio": "Designer UX/UI especializada em interfaces modernas",
+  "avatarUrl": "https://example.com/maria-avatar.jpg",
+  "isPublic": true
+}
+
+### 48. 📋 Buscar todos os perfis públicos
+GET {{baseUrl}}/profile/all-profiles
+Authorization: Bearer {{accessToken}}
+
+### 49. 👤 Buscar meu perfil
+GET {{baseUrl}}/profile/my-profile
+Authorization: Bearer {{accessToken}}
+
+### 50. 🔍 Buscar perfil de usuário específico
+@userId = 75a8ac27-f307-492c-a8d0-8dabcd39b6ce
+GET {{baseUrl}}/profile/{{userId}}
+Authorization: Bearer {{accessToken}}
+
+### 51. ✏️ Atualizar meu perfil
+PATCH {{baseUrl}}/profile/update-profile
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "bio": "Bio atualizada: Desenvolvedor Full Stack especializado em NestJS e React",
+  "avatarUrl": "https://example.com/new-avatar.jpg",
+  "isPublic": true
+}
+
+### 52. 🔒 Tornar perfil privado
+PATCH {{baseUrl}}/profile/update-profile
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "isPublic": false
+}
+
+### 53. 🗑️ Deletar meu perfil
+DELETE {{baseUrl}}/profile/delete-profile
+Authorization: Bearer {{accessToken}}
+
+### ================ TESTES DE ERRO - PROFILE ================
+
+### 54. ❌ Criar perfil sem autenticação
+POST {{baseUrl}}/profile
+Content-Type: {{contentType}}
+
+{
+  "userName": "usuariosemauth",
+  "bio": "Tentativa sem token"
+}
+
+### 55. ❌ Criar perfil com dados inválidos
+POST {{baseUrl}}/profile
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "userName": "",
+  "bio": "Esta bio tem mais de 200 caracteres e deveria falhar na validação. Lorem ipsum dolor sit amet consectetur adipiscing elit sed do eiusmod tempor incididunt ut labore et dolore magna aliqua ut enim ad minim veniam quis nostrud exercitation",
+  "avatarUrl": "url-invalida"
+}
+
+### 56. ❌ Criar perfil duplicado (mesmo usuário)
+POST {{baseUrl}}/profile
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "userName": "tentativaduplica",
+  "bio": "Segundo perfil do mesmo usuário"
+}
+
+### 57. ❌ Buscar perfil inexistente
+GET {{baseUrl}}/profile/00000000-0000-0000-0000-000000000000
+Authorization: Bearer {{accessToken}}
+
+### 58. ❌ Buscar meu perfil sem ter criado
+# Use um usuário novo que não criou perfil
+POST {{baseUrl}}/user/register
+Content-Type: {{contentType}}
+
+{
+  "email": "semperfil@example.com",
+  "password": "123456",
+  "name": "Sem Perfil"
+}
+
+POST {{baseUrl}}/auth/signIn
+Content-Type: {{contentType}}
+
+{
+  "email": "semperfil@example.com",
+  "password": "123456"
+}
+
+@tokenSemPerfil = COLE_TOKEN_AQUI
+
+GET {{baseUrl}}/profile/my-profile
+Authorization: Bearer {{tokenSemPerfil}}
+
+### 59. ❌ Atualizar perfil sem ter criado
+PATCH {{baseUrl}}/profile/update-profile
+Authorization: Bearer {{tokenSemPerfil}}
+Content-Type: {{contentType}}
+
+{
+  "bio": "Tentativa de atualizar sem ter perfil"
+}
+
+### 60. ❌ Deletar perfil sem ter criado
+DELETE {{baseUrl}}/profile/delete-profile
+Authorization: Bearer {{tokenSemPerfil}}
+
+### 61. ❌ Buscar perfil com token inválido
+GET {{baseUrl}}/profile/my-profile
+Authorization: Bearer token_invalido_aqui
+
+### 62. ❌ Tentar criar perfil com username já existente
+POST {{baseUrl}}/profile
+Authorization: Bearer {{mariaToken}}
+Content-Type: {{contentType}}
+
+{
+  "userName": "joaosilva123",
+  "bio": "Tentativa de usar username duplicado"
+}
+
+### 63. ❌ Avatar URL inválida
+POST {{baseUrl}}/profile
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "userName": "testeurl",
+  "avatarUrl": "nao-eh-uma-url",
+  "capaUrl": "tambem-nao-eh-url"
+}
+
+### ================ TESTES DE PRIVACIDADE - PROFILE ================
+
+### 64. 🔒 Tentar buscar perfil privado de outro usuário
+# Assumindo que o perfil principal está privado
+GET {{baseUrl}}/profile/{{userId}}
+Authorization: Bearer {{mariaToken}}
+
+### 65. 🔓 Tornar perfil público e tentar buscar novamente
+PATCH {{baseUrl}}/profile/update-profile
+Authorization: Bearer {{accessToken}}
+Content-Type: {{contentType}}
+
+{
+  "isPublic": true
+}
+
+GET {{baseUrl}}/profile/{{userId}}
+Authorization: Bearer {{mariaToken}}
+
+### 66. 📊 Verificar se perfis privados não aparecem na listagem pública
+GET {{baseUrl}}/profile/all-profiles
+Authorization: Bearer {{accessToken}}

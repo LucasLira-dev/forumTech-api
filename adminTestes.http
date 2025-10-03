@@ -1,0 +1,355 @@
+### ================ CONFIGURAÇÃO ================
+@baseUrl = http://localhost:3000
+@contentType = application/json
+
+### ================ 1. LOGIN ADMIN ================
+
+### 🔐 Login como administrador
+POST {{baseUrl}}/auth/signIn
+Content-Type: {{contentType}}
+
+{
+  "email": "admin@example.com",
+  "password": "admin123",
+}
+
+# ✅ Copie o access_token da resposta acima
+@adminToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6ImFkbWluQGV4YW1wbGUuY29tIiwic3ViIjoiZGUyYzkwZDYtZDJiNC00NzMxLTlhZDktNGViYTRmMDBiMTQ5Iiwicm9sZSI6ImFkbWluIiwiaWF0IjoxNzU5MDc4MTk4LCJleHAiOjE3NTkwODE3OTh9.R9D7P87RuDBbm8MLfw411ZD9W1TZfbMUAbcRaqWYV2E
+### 🔐 Login usuário comum (para testes)
+POST {{baseUrl}}/auth/signIn
+Content-Type: {{contentType}}
+
+{
+  "email": "user@example.com",
+  "password": "user123"
+}
+
+# ✅ Copie o access_token da resposta acima
+@userToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
+
+### ================ 2. DASHBOARD ADMINISTRATIVO ================
+
+### 📊 Listar todos os usuários (Admin)
+GET {{baseUrl}}/user/profiles
+Authorization: Bearer {{adminToken}}
+
+### 👑 Listar todos os administradores
+GET {{baseUrl}}/user/admins
+Authorization: Bearer {{adminToken}}
+
+### 🚫 Listar usuários banidos
+GET {{baseUrl}}/user/admin/bannedUsers
+Authorization: Bearer {{adminToken}}
+
+### ================ 3. GERENCIAMENTO DE ROLES ================
+
+# Primeiro, identifique um usuário para promover/rebaixar
+@targetUserId = 5d4c9b96-0a29-46d8-a9de-cf9e7fc9a796
+
+### 👑 Promover usuário comum a administrador
+PATCH {{baseUrl}}/user/admin/{{targetUserId}}/role
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "role": "admin"
+}
+
+### 👤 Rebaixar administrador a usuário comum
+PATCH {{baseUrl}}/user/admin/{{targetUserId}}/role
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "role": "user"
+}
+
+### ================ 4. SISTEMA DE BANIMENTO ================
+
+# ID do usuário que será banido (substitua por um ID real)
+@userToBanId = 5d4c9b96-0a29-46d8-a9de-cf9e7fc9a796
+
+### 🚫 Banir usuário
+PATCH {{baseUrl}}/user/admin/{{userToBanId}}/ban
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "reason": "Violação dos termos de uso - comportamento inadequado nos comentários"
+}
+
+### ✅ Desbanir usuário
+PATCH {{baseUrl}}/user/admin/{{userToBanId}}/unban
+Authorization: Bearer {{adminToken}}
+
+### ================ 5. VALIDAÇÃO DE BANIMENTO ================
+
+### ❌ Usuário banido tentando fazer login
+POST {{baseUrl}}/auth/signIn
+Content-Type: {{contentType}}
+
+{
+  "email": "maria@example.com",
+  "password": "senha123"
+}
+
+### ❌ Usuário banido tentando usar JWT (deve falhar)
+@bannedUserToken = eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6Im1hcmlhQGV4YW1wbGUuY29tIiwic3ViIjoiNWQ0YzliOTYtMGEyOS00NmQ4LWE5ZGUtY2Y5ZTdmYzlhNzk2Iiwicm9sZSI6InVzZXIiLCJpYXQiOjE3NTg5OTA0MDksImV4cCI6MTc1ODk5NDAwOX0.S6G24RPL55ma6t9SZLD8nsYKucPVvwjun10P9r8-ugI
+GET {{baseUrl}}/user/profile
+Authorization: Bearer {{bannedUserToken}}
+
+### ================ 6. TESTES DE AUTORIZAÇÃO ================
+
+### ❌ Usuário comum tentando acessar lista de usuários (deve falhar)
+GET {{baseUrl}}/user/profile
+Authorization: Bearer {{userToken}}
+
+### ❌ Usuário comum tentando banir alguém (deve falhar)
+PATCH {{baseUrl}}/user/admin/{{targetUserId}}/ban
+Authorization: Bearer {{userToken}}
+Content-Type: {{contentType}}
+
+{
+  "reason": "Tentativa de usuário comum"
+}
+
+### ❌ Usuário comum tentando promover alguém (deve falhar)
+PATCH {{baseUrl}}/user/admin/{{targetUserId}}/role
+Authorization: Bearer {{userToken}}
+Content-Type: {{contentType}}
+
+{
+  "role": "admin"
+}
+
+### ❌ Acesso sem token (deve falhar)
+GET {{baseUrl}}/user/admins
+
+### ================ 7. TESTES DE VALIDAÇÃO DE NEGÓCIO ================
+
+### ❌ Tentar banir usuário inexistente
+@fakeUserId = 00000000-0000-0000-0000-000000000000
+PATCH {{baseUrl}}/user/admin/{{fakeUserId}}/ban
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "reason": "Teste com usuário inexistente"
+}
+
+### ❌ Tentar promover usuário inexistente
+PATCH {{baseUrl}}/user/admin/{{fakeUserId}}/role
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "role": "admin"
+}
+
+### ❌ Tentar banir outro administrador (deve falhar)
+@otherAdminId = COLE_ID_DE_OUTRO_ADMIN
+PATCH {{baseUrl}}/user/admin/{{otherAdminId}}/ban
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "reason": "Tentativa de banir admin"
+}
+
+### ❌ Tentar alterar própria role (deve falhar)
+PATCH {{baseUrl}}/user/admin/{{adminId}}/role
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "role": "user"
+}
+
+### ❌ Tentar banir a si mesmo (deve falhar)
+PATCH {{baseUrl}}/user/admin/{{adminId}}/ban
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "reason": "Auto-banimento"
+}
+
+### ================ 8. TESTES DE VALIDAÇÃO DE DTO ================
+
+### ❌ Banir com motivo muito curto (deve falhar)
+PATCH {{baseUrl}}/user/admin/{{targetUserId}}/ban
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "reason": "Curto"
+}
+
+### ❌ Banir sem motivo (deve falhar)
+PATCH {{baseUrl}}/user/admin/{{targetUserId}}/ban
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "reason": ""
+}
+
+### ❌ Promover com role inválida (deve falhar)
+PATCH {{baseUrl}}/user/admin/{{targetUserId}}/role
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "role": "superuser"
+}
+
+### ❌ Promover sem especificar role (deve falhar)
+PATCH {{baseUrl}}/user/admin/{{targetUserId}}/role
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{}
+
+### ================ 9. TESTES DE REFRESH TOKEN ================
+
+### ❌ Refresh token de usuário banido (deve falhar)
+@bannedUserRefreshToken = REFRESH_TOKEN_DE_USUARIO_BANIDO
+POST {{baseUrl}}/auth/refreshToken
+Content-Type: {{contentType}}
+
+{
+  "refreshToken": "{{bannedUserRefreshToken}}"
+}
+
+### ✅ Refresh token de usuário válido (deve funcionar)
+@validRefreshToken = REFRESH_TOKEN_VALIDO
+POST {{baseUrl}}/auth/refreshToken
+Content-Type: {{contentType}}
+
+{
+  "refreshToken": "{{validRefreshToken}}"
+}
+
+### ================ 10. TESTES DE FLUXO COMPLETO ================
+
+### 📝 CENÁRIO: Usuário é banido, tenta usar sistema, é desbanido
+# 1. Banir usuário
+PATCH {{baseUrl}}/user/admin/{{targetUserId}}/ban
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "reason": "Teste de fluxo completo - banimento temporário"
+}
+
+# 2. Verificar se aparece na lista de banidos
+GET {{baseUrl}}/user/banned
+Authorization: Bearer {{adminToken}}
+
+# 3. Usuário banido tenta fazer login (deve falhar)
+POST {{baseUrl}}/auth/signIn
+Content-Type: {{contentType}}
+
+{
+  "email": "email@do.usuario.banido",
+  "password": "senha123"
+}
+
+# 4. Desbanir usuário
+PATCH {{baseUrl}}/user/admin/{{targetUserId}}/unban
+Authorization: Bearer {{adminToken}}
+
+# 5. Usuário desbanido consegue fazer login novamente
+POST {{baseUrl}}/auth/signIn
+Content-Type: {{contentType}}
+
+{
+  "email": "email@do.usuario.desbanido",
+  "password": "senha123"
+}
+
+### ================ 11. TESTES DE EDGE CASES ================
+
+### ❌ Token expirado
+@expiredToken = TOKEN_EXPIRADO
+GET {{baseUrl}}/user/profile
+Authorization: Bearer {{expiredToken}}
+
+### ❌ Token malformado
+@malformedToken = token-invalido-123
+GET {{baseUrl}}/user/profile
+Authorization: Bearer {{malformedToken}}
+
+### ❌ Tentar desbanir usuário que não está banido
+PATCH {{baseUrl}}/user/admin/{{targetUserId}}/unban
+Authorization: Bearer {{adminToken}}
+
+### ❌ Tentar banir usuário já banido
+# Primeiro banir
+PATCH {{baseUrl}}/user/admin/{{targetUserId}}/ban
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "reason": "Primeiro banimento"
+}
+
+# Depois tentar banir novamente (deve falhar)
+PATCH {{baseUrl}}/user/admin/{{targetUserId}}/ban
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "reason": "Segundo banimento - deve falhar"
+}
+
+### ================ 12. TESTES DE CONSULTA ================
+
+### 📋 Ver detalhes de um usuário específico
+GET {{baseUrl}}/user/{{targetUserId}}
+Authorization: Bearer {{adminToken}}
+
+### 🔍 Tentar ver usuário inexistente
+GET {{baseUrl}}/user/{{fakeUserId}}
+Authorization: Bearer {{adminToken}}
+
+### ================ NOTAS IMPORTANTES ================
+
+# 📝 ANTES DE EXECUTAR:
+# 1. ✅ Substituir todos os @variáveis com valores reais
+# 2. ✅ Ter pelo menos 1 admin e 2 usuários comuns no banco
+# 3. ✅ Verificar se o servidor está rodando na porta 3000
+# 4. ✅ Confirmar se as rotas estão configuradas corretamente
+
+# 🔍 RESULTADOS ESPERADOS:
+# ✅ Admins conseguem banir/desbanir usuários
+# ✅ Admins conseguem promover/rebaixar usuários
+# ✅ Usuários banidos são bloqueados imediatamente
+# ✅ Tokens de usuários banidos são invalidados
+# ❌ Usuários comuns não conseguem acessar rotas admin
+# ❌ Não é possível banir administradores
+# ❌ Não é possível remover o último admin
+
+# 📊 CÓDIGOS HTTP ESPERADOS:
+# 200 - Operações bem-sucedidas
+# 401 - Token inválido/expirado/usuário banido
+# 403 - Sem permissão (usuário comum tentando ação admin)
+# 404 - Usuário não encontrado
+# 409 - Conflito (já banido, já admin, etc.)
+# 400 - Dados inválidos no DTO
+
+### ================ LIMPEZA DE DADOS ================
+
+### 🧹 Para limpar dados de teste após os testes
+# Desbanir todos os usuários de teste
+PATCH {{baseUrl}}/user/admin/{{targetUserId}}/unban
+Authorization: Bearer {{adminToken}}
+
+# Rebaixar usuários promovidos durante os testes
+PATCH {{baseUrl}}/user/admin/{{targetUserId}}/role
+Authorization: Bearer {{adminToken}}
+Content-Type: {{contentType}}
+
+{
+  "role": "user"
+}
