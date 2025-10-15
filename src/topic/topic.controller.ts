@@ -3,13 +3,13 @@ import { TopicService } from './topic.service';
 import { CreateTopicDto } from './dto/create-topic.dto';
 import { UpdateTopicDto } from './dto/update-topic.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
-/
+
 @UseGuards(JwtAuthGuard)
 @Controller('topic')
 export class TopicController {
   constructor(private readonly topicService: TopicService) {}
 
-  @Post()
+  @Post('create')
   create(
     @Body() createTopicDto: CreateTopicDto,
     @Request() req,

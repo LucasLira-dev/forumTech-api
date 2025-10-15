@@ -1,0 +1,23 @@
+meta {
+  name: uploadAvatar
+  type: http
+  seq: 1
+}
+
+post {
+  url: http://localhost:3000/profile/upload-avatar
+  body: multipartForm
+  auth: bearer
+}
+
+auth:bearer {
+  token: eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJlbWFpbCI6InRlc3RhbmRvQGdtYWlsLmNvbSIsInN1YiI6IjZjYTYyZjU3LTc0OGUtNGY1My1hZTRlLTZmZmMwNTQwNzdhMiIsInJvbGUiOiJ1c2VyIiwiaWF0IjoxNzYwMzc3NTkzLCJleHAiOjE3NjAzODExOTN9.TKmLoWBnxNqRcy3Fs_LfaoqoE-aLcpiQGic31JOeA6s
+}
+
+body:multipart-form {
+  file: @file(C:\Users\al916\OneDrive\Imagens\Saved Pictures\ja2rwASy69ySlG3q_Brb8RhD7Sq2gzUEqSxxAbomVS8.png)
+}
+
+settings {
+  encodeUrl: true
+}

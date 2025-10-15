@@ -15,6 +15,8 @@ import { CommentsModule } from './comments/comments.module';
 import { Comment } from './comments/entities/comment.entity';
 import { ProfileModule } from './profile/profile.module';
 import { Profile } from './profile/entities/profile.entity';
+import { UploadService } from './upload/upload.service';
+import { UploadModule } from './upload/upload.module';
 
 @Module({
   imports: [
@@ -42,9 +44,10 @@ import { Profile } from './profile/entities/profile.entity';
     RefreshTokenModule,
     TopicModule,
     CommentsModule,
-    ProfileModule
+    ProfileModule,
+    UploadModule
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, UploadService],
 })
 export class AppModule {}

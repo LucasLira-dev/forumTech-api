@@ -1,10 +1,10 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
-import { CreateProfileDto } from './dto/create-profile.dto';
 import { UpdateProfileDto } from './dto/update-profile.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Profile } from './entities/profile.entity';
 import { ILike, Repository } from 'typeorm';
 import { User } from 'src/user/entities/user.entity';
+import { UploadService } from 'src/upload/upload.service';
 
 @Injectable()
 export class ProfileService {
@@ -13,45 +13,11 @@ export class ProfileService {
     @InjectRepository(Profile)
     private readonly profileRepository: Repository<Profile>,
     @InjectRepository(User)
-    private readonly userRepository: Repository<User>
+    private readonly userRepository: Repository<User>,
+    private readonly uploadService: UploadService
   ) {}
 
-  async create(createProfileDto: CreateProfileDto, userId: string) {
 
-    const userExists = await this.userRepository.findOne({
-      where: { id: userId }
-    })
-
-    if (!userExists) {
-      throw new NotFoundException('Usuário não encontrado');
-    }
-
-    // ✅ Verificar se já tem perfil
-    const existingProfile = await this.profileRepository.findOne({
-      where: { userId }
-    });
-
-    if (existingProfile) {
-      throw new ConflictException('Usuário já possui um perfil');
-    }
-
-    const existingUserName = await this.profileRepository.findOne({
-      where: {
-        userName: createProfileDto.userName
-      }
-    })
-
-    if (existingUserName) {
-      throw new ConflictException('Nome de usuário já está em uso');
-    }
-
-    const profile = await this.profileRepository.create({
-      ...createProfileDto,
-      userId: userId
-    })
-
-    return await this.profileRepository.save(profile)
-  }
 
   async findMyProfile(userId: string) {
     const existingUser = await this.userRepository.findOne({
@@ -147,32 +113,75 @@ async searchPublicProfiles(query: string) {
     });
   }
 
-  async update(updateProfileDto: UpdateProfileDto, userId: string) {
-    const existingProfile = await this.profileRepository.findOne({
-      where: { userId }
-    })
-
-    if (!existingProfile) {
-      throw new NotFoundException('Perfil não encontrado');
-    }
-
-    if (updateProfileDto.userName && updateProfileDto.userName !== existingProfile.userName) {
-    const userNameAlreadyExists = await this.profileRepository.findOne({
-      where: {
-        userName: updateProfileDto.userName,
-      }
+  async upsertProfile(updateProfileDto: UpdateProfileDto, userId: string) {
+    // Verificar se o usuário existe
+    const userExists = await this.userRepository.findOne({
+      where: { id: userId }
     });
 
-    if (userNameAlreadyExists) {
-       throw new ConflictException('Nome de usuário já está em uso');
+    if (!userExists) {
+      throw new NotFoundException('Usuário não encontrado');
     }
-  }
- 
-    await this.profileRepository.update({ userId }, updateProfileDto);
+
+    // Verificar se já existe um perfil
+    const existingProfile = await this.profileRepository.findOne({
+      where: { userId }
+    });
+
+    // Verificar se o userName está em uso por outro usuário
+    if (updateProfileDto.userName) {
+      const userNameAlreadyExists = await this.profileRepository.findOne({
+        where: { userName: updateProfileDto.userName }
+      });
+
+      if (userNameAlreadyExists && userNameAlreadyExists.userId !== userId) {
+        throw new ConflictException('Nome de usuário já está em uso');
+      }
+    }
+
+    // Deletar imagem antiga se estiver atualizando avatarUrl ou capaUrl
+    if (existingProfile) {
+      if (updateProfileDto.avatarUrl && existingProfile.avatarUrl) {
+        try {
+          await this.uploadService.deleteImage(existingProfile.avatarUrl);
+        } catch (error) {
+          const reason = error instanceof Error ? error.message : 'Erro desconhecido';
+          console.error('Erro ao deletar avatar antigo:', reason);
+          // Continua mesmo se falhar ao deletar
+        }
+      }
+
+      if (updateProfileDto.capaUrl && existingProfile.capaUrl) {
+        try {
+          await this.uploadService.deleteImage(existingProfile.capaUrl);
+        } catch (error) {
+          const reason = error instanceof Error ? error.message : 'Erro desconhecido';
+          console.error('Erro ao deletar capa antiga:', reason);
+          // Continua mesmo se falhar ao deletar
+        }
+      }
+    }
+
+    if(!existingProfile && !updateProfileDto.userName){
+      throw new BadRequestException('Finalize o perfil (userName) antes de enviar imagens.');
+    }
+
+    if (existingProfile) {
+      // Atualizar perfil existente
+      await this.profileRepository.update({ userId }, updateProfileDto);
+    } else {
+      // Criar novo perfil
+      const newProfile = this.profileRepository.create({
+        ...updateProfileDto,
+        userId: userId
+      });
+      await this.profileRepository.save(newProfile);
+    }
+
 
     return this.profileRepository.findOne({
       where: { userId }
-    })
+    });
   }
 
   async remove(userId: string) {

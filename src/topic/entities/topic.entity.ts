@@ -13,7 +13,7 @@ export class Topic {
     @Column({ nullable: false, type: 'text' })
     description: string;
 
-    @Column('simple-array', { nullable: false })
+    @Column('simple-array', { nullable: true, default: [] })
     technologies: string[];
 
     @CreateDateColumn()

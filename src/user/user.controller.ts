@@ -64,10 +64,16 @@ export class UserController {
     return this.userService.findOne(id);
   }
 
-  @Patch(':id')
+  @Patch('updateEmail')
   @UseGuards(JwtAuthGuard)
-  update(@Param('id') id: string, @Body() updateUserDto: UpdateUserDto, @Request() req) {
-    return this.userService.update(id, updateUserDto, req.user.id);
+  update(@Body() updateEmail: { email: string, password: string }, @Request() req) {
+    return this.userService.updateEmail(updateEmail.email, updateEmail.password, req.user.id);
+  }
+
+  @Patch('updatePassword')
+  @UseGuards(JwtAuthGuard)
+  updatePassword(@Body() UpdatePasswordDto: { oldPassword: string; newPassword: string }, @Request() req) {
+    return this.userService.updatePassword(req.user.id, UpdatePasswordDto.oldPassword, UpdatePasswordDto.newPassword);
   }
 
   @Delete(':id')

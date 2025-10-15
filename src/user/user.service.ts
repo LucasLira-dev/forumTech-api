@@ -1,12 +1,12 @@
 import { ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { User } from './entities/user.entity';
 import { ILike, Repository } from 'typeorm';
 import * as bcrypt from 'bcryptjs';
 import { UserRole  } from './entities/user.entity';
 import { RefreshTokenService } from 'src/refresh-token/refresh-token.service';
+import { JwtService } from '@nestjs/jwt';
 
 @Injectable()
 export class UserService {
@@ -15,6 +15,7 @@ export class UserService {
     @InjectRepository(User)
     private userRepository: Repository<User>,
     private readonly refreshTokenService: RefreshTokenService,
+    private readonly jwtService: JwtService,
   ) {}
 
   async create(createUserDto: CreateUserDto) {
@@ -46,6 +47,7 @@ export class UserService {
   async findAll(): Promise<User[]> {
     return this.userRepository.find(
       {
+        relations: ['profile'],
         select: ['id', 'email', 'name', 'role', 'isBanned', 'bannedAt', 'banReason', 'createdAt'],
         order: { createdAt: 'DESC' }
       }
@@ -55,6 +57,7 @@ export class UserService {
   async searchAllUsers(query?: string) {
     return await this.userRepository.find({
       where: query ? { name: ILike(`%${query.trim()}%`) } : {},
+      relations: ['profile'],
       select: ['id', 'email', 'name', 'role', 'isBanned', 'bannedAt', 'banReason', 'createdAt'],
       order: { createdAt: 'DESC' }
     });
@@ -62,7 +65,9 @@ export class UserService {
 
   async findAdmins(): Promise<User[]> {
     return this.userRepository.find({
-      where: { role: UserRole.ADMIN }
+      where: { role: UserRole.ADMIN },
+      relations: ['profile'],
+      select: ['id', 'email', 'name', 'role', 'isBanned', 'bannedAt', 'banReason', 'createdAt'],
     });
   }
 
@@ -103,77 +108,75 @@ export class UserService {
     return foundUser;
   }
 
-  async update(id: string, updateUserDto: UpdateUserDto, userId: string) {
-
-    // ✅ 1. Buscar o usuário que faz a requisição
-  const currentUser = await this.userRepository.findOne({
-    where: { id: userId },
-    select: ['id', 'role', 'isBanned']
-  });
-
-  if (!currentUser) {
-    throw new NotFoundException('Usuário autenticado não encontrado.');
-  }
-
-  if (currentUser.isBanned) {
-    throw new ConflictException('Usuário banido não pode fazer alterações.');
-  }
-
-  // ✅ 2. Buscar o usuário que será atualizado
-  const userToUpdate = await this.userRepository.findOne({
-    where: { id },
-    select: ['id', 'email', 'name', 'role', 'isBanned', 'isActive']
-  });
-
-  if (!userToUpdate) {
-    throw new NotFoundException('Usuário a ser atualizado não encontrado.');
-  }
-
-  // ✅ 3. Verificar autorização
-  const isOwner = userId === id;
-  const isAdmin = currentUser.role === UserRole.ADMIN;
-
-  if (!isOwner && !isAdmin) {
-    throw new ConflictException('Você só pode atualizar seu próprio perfil.');
-  }
-
-  // ✅ 4. Verificar se o usuário alvo não está banido (admins podem atualizar banidos)
-  if (userToUpdate.isBanned && !isAdmin) {
-    throw new ConflictException('Usuário banido não pode ser atualizado.');
-  }
-
-  // ✅ 5. Filtrar campos que podem ser atualizados
-  const allowedFields = ['name', 'email']; // Campos seguros
-  const filteredUpdateData = {};
-
-  for (const field of allowedFields) {
-    if (updateUserDto[field] !== undefined) {
-      filteredUpdateData[field] = updateUserDto[field];
-    }
-  }
-
-  // ✅ 6. Verificar se email já existe (se está sendo alterado)
-  if (filteredUpdateData['email'] && filteredUpdateData['email'] !== userToUpdate.email) {
-    const existingUser = await this.userRepository.findOne({
-      where: { email: filteredUpdateData['email'] }
+  async updateEmail(newEmail, password, userId: string) {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      select: ['id', 'email', 'isBanned', 'role', 'password']
     });
 
-    if (existingUser && existingUser.id !== id) {
-      throw new ConflictException('Este email já está em uso por outro usuário.');
+    if (!user) {
+      throw new NotFoundException('Usuário não encontrado.');
     }
+
+    if (user.isBanned) {
+      throw new ConflictException('Usuário banido não pode alterar o email.');
+    }
+
+    if (user.email === newEmail) {
+      throw new ConflictException('O novo email deve ser diferente do email atual.');
+    }
+
+    const emailInUse = await this.userRepository.findOne({
+      where: { email: newEmail }
+    });
+
+    if (emailInUse) {
+      throw new ConflictException('Este email já está em uso.');
+    }
+
+    const isPasswordValid = await bcrypt.compare(password, user.password);
+
+    if (!isPasswordValid) {
+      throw new ConflictException('Senha incorreta.');
+    }
+
+    await this.userRepository.update(userId, { email: newEmail });
+
+    await this.refreshTokenService.removeAllByUserId(userId);
+
+    const payload = { sub: user.id, email: newEmail, role: user.role };
+    const accessToken = this.jwtService.sign(payload);
+
+
+    return { message: 'Email atualizado com sucesso.', newEmail: newEmail , accessToken };
   }
 
-  // ✅ 7. Atualizar apenas se há campos para atualizar
-  if (Object.keys(filteredUpdateData).length === 0) {
-    throw new ConflictException('Nenhum campo válido fornecido para atualização.');
+  async updatePassword(userId: string, oldPassword: string, newPassword: string) {
+    const user = await this.userRepository.findOne({
+      where: { id: userId },
+      select: ['id', 'password', 'isBanned']
+    });
+
+    if(!user) {
+      throw new NotFoundException('Usuário não encontrado.');
+    }
+
+    if (user.isBanned) {
+      throw new ConflictException('Usuário banido não pode alterar a senha.');
+    }
+
+    if(!bcrypt.compareSync(oldPassword, user.password)) {
+      throw new ConflictException('Senha antiga está incorreta.');
+    }
+
+    const hashedNewPassword = await bcrypt.hash(newPassword, 10);
+
+    await this.userRepository.update(userId, {
+      password: hashedNewPassword
+    });
+
+    return { message: 'Senha atualizada com sucesso.' };
   }
-
-  await this.userRepository.update(id, filteredUpdateData);
-
-  // ✅ 8. Retornar usuário atualizado
-  return this.findOne(id);
-  }
-
 
   async remove(id: string) {
     const user = await this.findOne(id);
@@ -316,6 +319,7 @@ export class UserService {
   async findBannedUsers(): Promise<User[]> {
     return this.userRepository.find({
       where: { isBanned: true },
+      relations: ['profile'],
       select: ['id', 'email', 'name', 'bannedAt', 'banReason', 'bannedByUserId', 'createdAt'],
       order: { bannedAt: 'DESC' }
     })

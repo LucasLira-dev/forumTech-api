@@ -51,10 +51,15 @@ export class AuthService {
             role: user.role 
         };
 
+        const access_token = this.jwtService.sign(payload);
+        const decoded: any = this.jwtService.decode(access_token);
+        const expiresIn = decoded?.exp ? decoded.exp - Math.floor(Date.now() / 1000) : null;
+
         const refreshToken = await this.refreshTokenService.createRefreshToken(user);
         return {
-            access_token: this.jwtService.sign(payload),
+            access_token,
             refresh_token: refreshToken.token,
+            expiresIn, // tempo em segundos até o token expirar
             user: {
                 id: user.id,
                 email: user.email,
@@ -98,7 +103,9 @@ export class AuthService {
             role: user.role
         };
 
-        const acessToken = this.jwtService.sign(payload);
+        const access_token = this.jwtService.sign(payload);
+        const decoded: any = this.jwtService.decode(access_token);
+        const expiresIn = decoded?.exp ? decoded.exp - Math.floor(Date.now() / 1000) : null;
 
         const newRefreshToken = await this.refreshTokenService.createRefreshToken(user);
 
@@ -107,8 +114,9 @@ export class AuthService {
         }
 
         return {
-            access_token: acessToken,
+            access_token,
             refresh_token: newRefreshToken.token,
+            expiresIn, // tempo em segundos até o token expirar
         }
     }
 }
