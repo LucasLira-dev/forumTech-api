@@ -49,6 +49,25 @@ export class ProfileService {
     return profile;
   }
 
+  async findProfileByUserName(userName: string) {
+    const profile = await this.profileRepository.findOne({
+      where: { userName, isPublic: true, user: {
+        isBanned: false
+      } },
+      relations: ['user', 'user.topics', 'user.comments'],
+    });
+
+    if (!profile) {
+      throw new NotFoundException('Perfil não encontrado');
+    }
+
+    if (!profile.isPublic) {
+      throw new NotFoundException('Perfil privado!');
+    }
+
+    return profile;
+  }
+
   async findAllPublicProfiles() {
   return await this.profileRepository.find({
     where: { isPublic: true },

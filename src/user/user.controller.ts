@@ -1,7 +1,6 @@
 import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Request, Query } from '@nestjs/common';
 import { UserService } from './user.service';
 import { CreateUserDto } from './dto/create-user.dto';
-import { UpdateUserDto } from './dto/update-user.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { AdminGuard } from 'src/auth/guards/admin.guard';
 import { UpdateUserRoleDto } from './dto/update-user-role.dto';
@@ -76,9 +75,9 @@ export class UserController {
     return this.userService.updatePassword(req.user.id, UpdatePasswordDto.oldPassword, UpdatePasswordDto.newPassword);
   }
 
-  @Delete(':id')
+  @Delete('deleteAccount')
   @UseGuards(JwtAuthGuard)
-  remove(@Param('id') id: string) {
-    return this.userService.remove(id);
+  remove(@Request() req) {
+    return this.userService.remove(req.user.id);
   }
 }

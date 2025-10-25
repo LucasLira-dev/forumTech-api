@@ -30,7 +30,14 @@ export class CommentsService {
       ...createCommentDto,
       userId,
     });
-    return this.commentsRepository.save(newComment);
+
+    const savedComment = await this.commentsRepository.save(newComment);
+
+    // Retorna o comentário com os dados do autor já populados
+    return this.commentsRepository.findOne({
+      where: { id: savedComment.id },
+      relations: ['user', 'user.profile'],
+    });
   }
 
   async findAllCommentsByUser(userId: string) {

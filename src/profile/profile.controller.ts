@@ -5,7 +5,6 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { UploadService } from 'src/upload/upload.service';
 
-@UseGuards(JwtAuthGuard)
 @Controller('profile')
 export class ProfileController {
   constructor(
@@ -23,26 +22,36 @@ export class ProfileController {
     return this.profileService.searchPublicProfiles(query);
   }
 
+  @Get('user/:userName')
+  findProfileByUserName(@Param('userName') userName: string) {
+    return this.profileService.findProfileByUserName(userName);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Patch('update-visibility')
   updateVisibility(@Body('isPublic') isPublic: boolean, @Request() req) {
     return this.profileService.updateProfileVisibility(isPublic, req.user.id);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get('my-profile')
   findMyProfile(@Request() req){
     return this.profileService.findMyProfile(req.user.id)
   }
 
+  @UseGuards(JwtAuthGuard)
   @Get(':id')
   findOne(@Param('id') id: string) {
     return this.profileService.findOneProfile(id);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Patch('update-profile')
   upsertProfile(@Body() updateProfileDto: UpdateProfileDto, @Request() req) {
     return this.profileService.upsertProfile(updateProfileDto, req.user.id);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post('upload-avatar')
   @UseInterceptors(FileInterceptor('file', {
     limits: { fileSize: 5 * 1024 * 1024 },
@@ -73,6 +82,7 @@ export class ProfileController {
     }
   }
 
+  @UseGuards(JwtAuthGuard)
   @Post('upload-capa')
   @UseInterceptors(FileInterceptor('file', {
     limits: { fileSize: 5 * 1024 * 1024 },
@@ -103,6 +113,7 @@ export class ProfileController {
     }
   }
 
+  @UseGuards(JwtAuthGuard)
   @Delete('delete-profile')
   remove(@Request() req) {
     return this.profileService.remove(req.user.id);

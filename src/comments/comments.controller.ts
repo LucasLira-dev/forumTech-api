@@ -9,7 +9,7 @@ import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 export class CommentsController {
   constructor(private readonly commentsService: CommentsService) {}
 
-  @Post()
+  @Post('create')
   create(@Body() createCommentDto: CreateCommentDto, @Request() req) {
     const userId = req.user.id;
     return this.commentsService.create(createCommentDto, userId);

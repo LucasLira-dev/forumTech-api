@@ -12,7 +12,7 @@ export class RefreshToken {
     @Column()
     expiresAt: Date;
 
-    @ManyToOne(() => User, user => user.refreshTokens)
+    @ManyToOne(() => User, user => user.refreshTokens, { onDelete: 'CASCADE' })
     @JoinColumn({ name: 'userId' })
     user: User;
 }

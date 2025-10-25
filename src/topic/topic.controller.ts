@@ -4,11 +4,11 @@ import { CreateTopicDto } from './dto/create-topic.dto';
 import { UpdateTopicDto } from './dto/update-topic.dto';
 import { JwtAuthGuard } from 'src/auth/guards/jwt-auth.guard';
 
-@UseGuards(JwtAuthGuard)
 @Controller('topic')
 export class TopicController {
   constructor(private readonly topicService: TopicService) {}
 
+  @UseGuards(JwtAuthGuard)
   @Post('create')
   create(
     @Body() createTopicDto: CreateTopicDto,
@@ -17,7 +17,7 @@ export class TopicController {
     return this.topicService.create(createTopicDto, req.user.id);
   }
 
-  @Get()
+  @Get('allTopics')
   findAll() {
     return this.topicService.findAll();
   }
@@ -27,6 +27,12 @@ export class TopicController {
     return this.topicService.searchTopic(query);
   }
 
+  @Get('user/:userName')
+  findByUserName(@Param('userName') userName: string) {
+    return this.topicService.findByUserName(userName);
+  }
+
+  @UseGuards(JwtAuthGuard)
   @Get('topicsByUser')
   findByUser(@Request() req) {
     return this.topicService.findByUserId(req.user.id);
@@ -37,12 +43,13 @@ export class TopicController {
     return this.topicService.findOne(topicId);
   }
 
-
+  @UseGuards(JwtAuthGuard)
   @Patch(':topicId')
   update(@Param('topicId') topicId: string, @Body() updateTopicDto: UpdateTopicDto, @Request() req) {
     return this.topicService.update(topicId, updateTopicDto, req.user.id);
   }
 
+  @UseGuards(JwtAuthGuard)
   @Delete(':topicId')
   remove(@Param('topicId') topicId: string, @Request() req) {
     return this.topicService.remove(topicId, req.user.id);

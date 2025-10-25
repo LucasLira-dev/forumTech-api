@@ -7,7 +7,9 @@ import * as bcrypt from 'bcryptjs';
 import { UserRole  } from './entities/user.entity';
 import { RefreshTokenService } from 'src/refresh-token/refresh-token.service';
 import { JwtService } from '@nestjs/jwt';
-
+import { DataSource } from 'typeorm';
+import { UploadService } from 'src/upload/upload.service';
+import { RefreshToken } from 'src/refresh-token/refresh.entity';
 @Injectable()
 export class UserService {
 
@@ -16,6 +18,8 @@ export class UserService {
     private userRepository: Repository<User>,
     private readonly refreshTokenService: RefreshTokenService,
     private readonly jwtService: JwtService,
+    private readonly dataSource: DataSource,
+    private readonly uploadService: UploadService,
   ) {}
 
   async create(createUserDto: CreateUserDto) {
@@ -179,14 +183,53 @@ export class UserService {
   }
 
   async remove(id: string) {
-    const user = await this.findOne(id);
+    // Usar transação para operação segura de remoção
+    const queryRunner = this.dataSource.createQueryRunner();
+    await queryRunner.connect();
+    await queryRunner.startTransaction();
 
-    if (!user){
-      throw new NotFoundException('Usuário não encontrado.');
+    try {
+      // carregar usuário com profile e refresh tokens
+      const user = await queryRunner.manager.findOne(User, {
+        where: { id },
+        relations: ['profile', 'refreshTokens']
+      });
+
+      if (!user) {
+        throw new NotFoundException('Usuário não encontrado.');
+      }
+
+      // remover arquivos externos (avatar/capa) se existirem
+      try {
+        if (user.profile?.avatarUrl) {
+          await this.uploadService.deleteImage(user.profile.avatarUrl);
+        }
+        if (user.profile?.capaUrl) {
+          await this.uploadService.deleteImage(user.profile.capaUrl);
+        }
+      } catch (err) {
+        // Log e continua, não falhar a operação toda por falha no storage
+        console.error('Erro ao deletar imagens do usuário:', err instanceof Error ? err.message : err);
+      }
+
+      // remover refresh tokens explicitamente (caso não exista cascade)
+      if (user.refreshTokens && user.refreshTokens.length > 0) {
+        const tokenIds = user.refreshTokens.map(rt => rt.id);
+        await queryRunner.manager.delete(RefreshToken, tokenIds);
+      }
+
+      // deletar usuário — cascatas no DB tratarão topics/comments/profile/refresh
+      await queryRunner.manager.delete(User, { id });
+
+      await queryRunner.commitTransaction();
+
+      return { message: 'Usuário removido com sucesso' };
+    } catch (err) {
+      await queryRunner.rollbackTransaction();
+      throw err;
+    } finally {
+      await queryRunner.release();
     }
-
-    await this.userRepository.remove(user);
-    return { message: 'Usuário removido com sucesso' };
   }
 
   async banUser(userId: string, reason: string, bannedByUserId: string) {
@@ -244,9 +287,9 @@ export class UserService {
 
     await this.userRepository.update(userId, {
       isBanned: false,
-      bannedAt: undefined,
-      banReason: undefined,
-      bannedByUserId: undefined,
+      bannedAt: null,
+      banReason: null,
+      bannedByUserId: null,
     })
 
     return {

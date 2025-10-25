@@ -3,12 +3,16 @@ import { CreateTopicDto } from './dto/create-topic.dto';
 import { UpdateTopicDto } from './dto/update-topic.dto';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Topic } from './entities/topic.entity';
-import { ILike, Repository } from 'typeorm';
+import { Repository } from 'typeorm';
+import { Profile } from 'src/profile/entities/profile.entity';
 
 @Injectable()
 export class TopicService {
 
-  constructor(@InjectRepository(Topic) private readonly topicRepository: Repository<Topic>) {}
+  constructor(
+    @InjectRepository(Topic) private readonly topicRepository: Repository<Topic>,
+    @InjectRepository(Profile) private readonly profileRepository: Repository<Profile>,
+  ) {}
 
   async create(createTopicDto: CreateTopicDto, userId: string) {
     const topic = await this.topicRepository.create({
@@ -19,16 +23,21 @@ export class TopicService {
   }
 
   async findAll() {
-    return await this.topicRepository.find(
-      {
-        order: { createdAt: 'DESC' }
-      }
-    );
+    return this.topicRepository
+    .createQueryBuilder('topic')
+    .leftJoinAndSelect('topic.user', 'user')
+    .leftJoinAndSelect('user.profile', 'profile')
+    .loadRelationCountAndMap('topic.commentCount', 'topic.comments')
+    .orderBy('topic.createdAt', 'DESC')
+    .getMany();
   } 
 
   async findOne(topicId: string) {
-    return await this.topicRepository.findOne({ where: { topicId } });
-  }
+  return this.topicRepository.findOne({
+    where: { topicId },
+    relations: ['comments', 'comments.user', 'comments.user.profile', 'user', 'user.profile'], 
+  });
+}
 
   async findByUserId(userId: string) {
     return await this.topicRepository.find(
@@ -38,23 +47,57 @@ export class TopicService {
       });
   }
 
-  async searchTopic(query?: string){
-     if (!query?.trim()) {
+  async findByUserName(userName: string) {
+    if(!userName?.trim()) {
+      throw new NotFoundException('Nome de usuário inválido');
+    }
+
+    const profile = await this.profileRepository.findOne({
+      where: {
+        userName: userName.trim(),
+        isPublic: true,
+        user: { isBanned: false },
+      },
+      relations: ['user'],
+    });
+    if (!profile) {
+      throw new NotFoundException('Perfil público não encontrado para este usuário');
+    }
+
+    return await this.topicRepository.find(
+      { 
+        where: { userId: profile.userId }, 
+        order: { createdAt: 'DESC' } 
+      });
+  }
+
+  async searchTopic(query?: string) {
+    const sanitizedQuery = query?.trim();
+    if (!sanitizedQuery) {
       // ✅ Se não tem query, retorna todos
       return this.findAll();
     }
 
-    // ✅ CORRIGIR - Busca em array precisa ser diferente
-    return await this.topicRepository
+    const likeQuery = `%${sanitizedQuery}%`;
+    const exactQuery = sanitizedQuery.toLowerCase();
+
+    return this.topicRepository
       .createQueryBuilder('topic')
       .leftJoinAndSelect('topic.user', 'user')
+      .leftJoinAndSelect('user.profile', 'profile')
+      .loadRelationCountAndMap('topic.commentCount', 'topic.comments')
       .where(
-        '(topic.title ILIKE :query OR topic.description ILIKE :query OR :queryLower = ANY(topic.technologies))',
-        { 
-          query: `%${query.trim()}%`,
-          queryLower: query.trim().toLowerCase()
-        }
+        `(
+          topic.title ILIKE :likeQuery OR
+          topic.description ILIKE :likeQuery OR
+          EXISTS (
+            SELECT 1
+            FROM unnest(string_to_array(COALESCE(topic.technologies, ''), ',')) AS tech
+            WHERE LOWER(btrim(tech)) = :exactQuery
+          )
+        )`
       )
+      .setParameters({ likeQuery, exactQuery })
       .orderBy('topic.createdAt', 'DESC')
       .getMany();
   }

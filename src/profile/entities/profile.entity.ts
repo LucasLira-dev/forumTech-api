@@ -20,7 +20,7 @@ export class Profile {
     @Column( { default: false })
     isPublic: boolean;
 
-    @OneToOne(() => User, user => user.profile)
+    @OneToOne(() => User, user => user.profile, { onDelete: 'CASCADE' })
     @JoinColumn( {name: 'userId'})
     user: User;
 
