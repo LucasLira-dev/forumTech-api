@@ -11,10 +11,10 @@ export class Profile {
     @Column({ type: 'text', nullable: true })
     bio: string | null;
 
-    @Column({ nullable: true })
+    @Column({ type: 'text', nullable: true })
     avatarUrl: string | null;
 
-    @Column({ nullable: true })
+    @Column({ type: 'text', nullable: true })
     capaUrl: string | null;
 
     @Column( { default: false })

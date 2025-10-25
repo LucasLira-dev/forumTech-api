@@ -7,7 +7,7 @@ export class Topic {
     @PrimaryGeneratedColumn('uuid')
     topicId: string;
 
-    @Column({ nullable: false, length: 100 })
+    @Column({ nullable: false, length: 100})
     title: string;
 
     @Column({ nullable: false, type: 'text' })

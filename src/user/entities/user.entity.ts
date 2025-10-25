@@ -54,13 +54,13 @@ export class User {
   @Column({ default: false })
   isBanned: boolean;
 
-  @Column( { nullable: true })
+  @Column( { type: 'timestamp', nullable: true })
   bannedAt: Date | null;
 
-  @Column( { nullable: true })
+  @Column( {type: 'text', nullable: true })
   banReason: string | null;
 
-  @Column( { nullable: true })
+  @Column( { type: 'uuid', nullable: true })
   bannedByUserId: string | null;
 
   @OneToMany(() => RefreshToken, refreshToken => refreshToken.user)
