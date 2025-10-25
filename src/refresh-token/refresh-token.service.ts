@@ -13,6 +13,9 @@ export class RefreshTokenService {
     ) {}
 
    async createRefreshToken(user: User): Promise<RefreshToken> {
+
+        await this.removeAllByUserId(user.id);
+
         const token = crypto.randomBytes(32).toString('hex');
 
         const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000); // 7 dias

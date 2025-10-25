@@ -96,7 +96,7 @@ export class AuthService {
         return refreshToken;
     }
 
-    async generateNewTokens(user: User, oldRefreshToken?: string){
+    async generateNewTokens(user: User){
         const payload = { 
             email: user.email, 
             sub: user.id,
@@ -108,10 +108,6 @@ export class AuthService {
         const expiresIn = decoded?.exp ? decoded.exp - Math.floor(Date.now() / 1000) : null;
 
         const newRefreshToken = await this.refreshTokenService.createRefreshToken(user);
-
-        if(oldRefreshToken) {
-            await this.refreshTokenService.remove(oldRefreshToken);
-        }
 
         return {
             access_token,

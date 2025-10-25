@@ -25,8 +25,7 @@ export class AuthController {
         }
 
         return this.authService.generateNewTokens(
-            refreshToken.user,
-            refreshTokenDto.refreshToken
+            refreshToken.user
         );
     }
 
