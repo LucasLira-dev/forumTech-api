@@ -31,7 +31,7 @@ export class User {
   @Exclude() // ← Exclui do response quando usar class-transformer
   password: string;
 
-  @Column({ nullable: true })
+  @Column({ nullable: false })
   name: string;
 
   @Column({ default: true })
@@ -55,13 +55,13 @@ export class User {
   isBanned: boolean;
 
   @Column( { nullable: true })
-  bannedAt: Date;
+  bannedAt: Date | null;
 
   @Column( { nullable: true })
-  banReason: string;
+  banReason: string | null;
 
   @Column( { nullable: true })
-  bannedByUserId: string;
+  bannedByUserId: string | null;
 
   @OneToMany(() => RefreshToken, refreshToken => refreshToken.user)
   refreshTokens: RefreshToken[];

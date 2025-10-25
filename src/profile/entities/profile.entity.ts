@@ -9,13 +9,13 @@ export class Profile {
     userName: string;
 
     @Column({ nullable: true, length: 200 })
-    bio: string;
+    bio: string | null;
 
     @Column({ nullable: true })
-    avatarUrl: string;
+    avatarUrl: string | null;
 
     @Column({ nullable: true })
-    capaUrl: string;
+    capaUrl: string | null;
 
     @Column( { default: false })
     isPublic: boolean;
