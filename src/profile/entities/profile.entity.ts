@@ -8,7 +8,7 @@ export class Profile {
     @Column( { unique: true})
     userName: string;
 
-    @Column({ nullable: true, length: 200 })
+    @Column({ type: 'text', nullable: true })
     bio: string | null;
 
     @Column({ nullable: true })
