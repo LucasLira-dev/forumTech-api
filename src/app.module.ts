@@ -16,6 +16,7 @@ import { ProfileModule } from './profile/profile.module';
 import { Profile } from './profile/entities/profile.entity';
 import { UploadService } from './upload/upload.service';
 import { UploadModule } from './upload/upload.module';
+import { HealthController } from './health/health.controller';
 
 @Module({
   imports: [
@@ -45,7 +46,7 @@ import { UploadModule } from './upload/upload.module';
     ProfileModule,
     UploadModule
   ],
-  controllers: [AppController],
+  controllers: [AppController, HealthController],
   providers: [AppService, UploadService],
 })
 export class AppModule {}
