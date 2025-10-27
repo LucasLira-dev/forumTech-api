@@ -97,6 +97,9 @@ export class AuthService {
     }
 
     async generateNewTokens(user: User){
+
+        await this.refreshTokenService.removeAllByUserId(user.id);
+
         const payload = { 
             email: user.email, 
             sub: user.id,
